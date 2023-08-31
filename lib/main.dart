@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:dart_minecraft/dart_minecraft.dart';
 import 'package:dart_minecraft/src/packet/packets/response_packet.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,6 +46,22 @@ class Server {
 
   String? nick;
 
+  static const _divider = ',';
+  static const _implictly_null = '@_NULL_@';
+
+  String serialize() {
+    return [uri, port, timeoutSeconds, nick ?? _implictly_null].join(_divider);
+  }
+
+  static Server fromSerialized(String data) {
+    final split = data.split(_divider);
+    final nickStr = split[3];
+    return Server(split[0],
+        port: int.parse(split[1]),
+        timeoutSeconds: int.parse(split[2]),
+        nick: nickStr == _implictly_null ? null : nickStr);
+  }
+
   Future<ResponsePacket?> fetch() {
     return ping(
       uri,
@@ -55,12 +72,44 @@ class Server {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Server> _servers = [
-  ];
+  final List<Server> _servers = [];
+  static const String _prefKey = "SERVER_LIST_SAVED_SERVERS";
+
+  _MyHomePageState() {
+    _fetchServers().then((value) {
+      if (value != null) {
+        _servers.clear();
+        _servers.addAll(value);
+      }
+    });
+  }
+
+  Future<List<Server>?> _fetchServers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final servers = prefs
+        .getStringList(_prefKey)
+        ?.map((e) => Server.fromSerialized(e))
+        .toList();
+    return servers;
+  }
+
+  void _loadServers() async {
+    final servers = await _fetchServers();
+    if (servers != null) {
+      _servers.clear();
+      _servers.addAll(servers);
+    }
+  }
+
+  void _saveServers() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setStringList(_prefKey, _servers.map((e) => e.serialize()).toList());
+  }
 
   void _addServer(Server server) {
     setState(() {
       _servers.add(server);
+      _saveServers();
     });
   }
 
@@ -92,235 +141,246 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       body: Center(
-        child: ListView.builder(
-          itemBuilder: (ctx, idx) {
-            final server = _servers[idx];
-            return FutureBuilder(
-                future: server.fetch(),
-                builder: (ctx, snapshot) {
-                  final hasError = snapshot.hasError;
-                  final hasData = snapshot.hasData;
+        child: _servers.isEmpty
+            ? Container(
+                child: const Text('하단의 버튼 사용하여 서버를 추가해 주세요.'),
+              )
+            : ListView.builder(
+                itemBuilder: (ctx, idx) {
+                  final server = _servers[idx];
+                  return FutureBuilder(
+                      future: server.fetch(),
+                      builder: (ctx, snapshot) {
+                        final hasError = snapshot.hasError;
+                        final hasData = snapshot.hasData;
 
-                  final data = snapshot.data;
-                  final resp = data?.response;
+                        final data = snapshot.data;
+                        final resp = data?.response;
 
-                  final success = hasData && data != null && resp != null;
-                  final ping = data?.ping;
+                        final success = hasData && data != null && resp != null;
+                        final ping = data?.ping;
 
-                  final version = success ? resp.version.name : null;
-                  final faviconBlob = success ? resp.favicon : null;
-                  final motd =
-                      success && resp.description.description.isNotEmpty
-                          ? resp.description.description
-                          : null;
+                        final version = success ? resp.version.name : null;
+                        final faviconBlob = success ? resp.favicon : null;
+                        final motd =
+                            success && resp.description.description.isNotEmpty
+                                ? resp.description.description
+                                : null;
 
-                  final Color pingColor;
-                  if (ping == null) {
-                    pingColor = Colors.redAccent;
-                  } else if (ping <= 60) {
-                    pingColor = Colors.greenAccent;
-                  } else if (ping <= 120) {
-                    pingColor = Colors.lightGreenAccent;
-                  } else if (ping <= 200) {
-                    pingColor = Colors.yellow;
-                  } else {
-                    pingColor = Colors.orangeAccent;
-                  }
+                        final Color pingColor;
+                        if (ping == null) {
+                          pingColor = Colors.redAccent;
+                        } else if (ping <= 60) {
+                          pingColor = Colors.greenAccent;
+                        } else if (ping <= 120) {
+                          pingColor = Colors.lightGreenAccent;
+                        } else if (ping <= 200) {
+                          pingColor = Colors.yellow;
+                        } else {
+                          pingColor = Colors.orangeAccent;
+                        }
 
-                  final players = resp?.players;
+                        final players = resp?.players;
 
-                  // region Creating Widgets
+                        // region Creating Widgets
 
-                  final faviconWidget = (faviconBlob != null)
-                      ? faviconBlob.isNotEmpty
-                          ? SizedBox(
-                              width: 55,
-                              height: 55,
-                              child: Image.memory(
-                                  base64Decode(faviconBlob.split(',')[1])),
-                            )
-                          : null
-                      : null;
+                        final faviconWidget = (faviconBlob != null)
+                            ? faviconBlob.isNotEmpty
+                                ? SizedBox(
+                                    width: 55,
+                                    height: 55,
+                                    child: Image.memory(base64Decode(
+                                        faviconBlob.split(',')[1])),
+                                  )
+                                : null
+                            : null;
 
-                  final nameWidget = Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      (!success && !hasError)
-                          ? const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 0, 7, 0),
-                              child: SizedBox(
-                                width: 45,
-                                height: 45,
-                                child: RefreshProgressIndicator(),
-                              ),
-                            )
-                          : const SizedBox(),
-                      server.nick != null
-                          ? Text(server.nick!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ))
-                          : Text.rich(TextSpan(children: [
-                              TextSpan(
-                                  text: server.uri,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  )),
-                              TextSpan(
-                                text: server.port == 25565
-                                    ? ' '
-                                    : ' :${server.port}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                    color: Colors.grey),
-                              ),
-                            ]))
-                    ],
-                  );
-
-                  final pingWidget = Text(
-                    ping == null ? '' : '${ping}ms',
-                    style: TextStyle(fontSize: 14, color: pingColor),
-                  );
-                  final playerCountWidget = success && players != null
-                      ? Text.rich(TextSpan(
+                        final nameWidget = Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            TextSpan(
-                                text: players.online.toString(),
-                                style: const TextStyle(fontSize: 25)),
-                            TextSpan(
-                                text:
-                                    ' / ${players.max.toString().padLeft(2, '0')}',
-                                style: const TextStyle(color: Colors.grey))
-                          ],
-                        ))
-                      : const SizedBox();
-
-                  // endregion
-
-                  return Card(
-                    shadowColor: pingColor,
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
-                      child: ListTile(
-                        onTap: !success
-                            ? null
-                            : () => showDialog(
-                                context: ctx,
-                                builder: (ctx) {
-                                  final items = <Widget>[
-                                    Text('버전 : ${version ?? '알 수 없음'}'),
-                                    Text('MOTD : ${motd ?? '알 수 없음'}'),
-                                    Text(
-                                        '지연시간 : ${ping == null ? '알 수 없음' : '${ping}ms'}'),
-                                  ];
-
-                                  if (players != null) {
-
-                                    items.add(Text('현재 플레이어 : ${players.online}'));
-                                    items.add(Text('최대 플레이어 : ${players.max}'));
-
-                                    for (final p in players.sample) {
-                                      items.add(Text('${p.id}, ${p.name}'));
-                                    }
-                                  }
-
-                                  return Dialog(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: items,
-                                      ),
+                            (!success && !hasError)
+                                ? const Padding(
+                                    padding: EdgeInsets.fromLTRB(0, 0, 7, 0),
+                                    child: SizedBox(
+                                      width: 45,
+                                      height: 45,
+                                      child: RefreshProgressIndicator(),
                                     ),
-                                  );
-                                }),
-                        onLongPress: () => showDialog(
-                            context: ctx,
-                            builder: (ctx) => Dialog(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        10, 12, 10, 2),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('해당 서버를 삭제하시겠습니까?'),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                  )
+                                : const SizedBox(),
+                            server.nick != null
+                                ? Text(server.nick!,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                    ))
+                                : Text.rich(TextSpan(children: [
+                                    TextSpan(
+                                        text: server.uri,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        )),
+                                    TextSpan(
+                                      text: server.port == 25565
+                                          ? ' '
+                                          : ' :${server.port}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          color: Colors.grey),
+                                    ),
+                                  ]))
+                          ],
+                        );
+
+                        final pingWidget = Text(
+                          ping == null ? '' : '${ping}ms',
+                          style: TextStyle(fontSize: 14, color: pingColor),
+                        );
+                        final playerCountWidget = success && players != null
+                            ? Text.rich(TextSpan(
+                                children: [
+                                  TextSpan(
+                                      text: players.online.toString(),
+                                      style: const TextStyle(fontSize: 25)),
+                                  TextSpan(
+                                      text:
+                                          ' / ${players.max.toString().padLeft(2, '0')}',
+                                      style:
+                                          const TextStyle(color: Colors.grey))
+                                ],
+                              ))
+                            : const SizedBox();
+
+                        // endregion
+
+                        return Card(
+                          shadowColor: pingColor,
+                          elevation: 2,
+                          child: InkWell(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(3)),
+                            onTap: !success
+                                ? null
+                                : () => showDialog(
+                                    context: ctx,
+                                    builder: (ctx) {
+                                      final items = <Widget>[
+                                        Text('버전 : ${version ?? '알 수 없음'}'),
+                                        Text('MOTD : ${motd ?? '알 수 없음'}'),
+                                        Text(
+                                            '지연시간 : ${ping == null ? '알 수 없음' : '${ping}ms'}'),
+                                      ];
+
+                                      if (players != null) {
+                                        items.add(Text(
+                                            '현재 플레이어 : ${players.online}'));
+                                        items.add(
+                                            Text('최대 플레이어 : ${players.max}'));
+
+                                        for (final p in players.sample) {
+                                          items.add(Text('${p.id}, ${p.name}'));
+                                        }
+                                      }
+
+                                      return Dialog(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(10),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: items,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                            onLongPress: () => showDialog(
+                                context: ctx,
+                                builder: (ctx) => Dialog(
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            10, 12, 10, 2),
+                                        child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(ctx),
-                                                child: const Text('취소')),
-                                            TextButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    _servers.remove(server);
-                                                  });
-                                                  Navigator.pop(ctx);
-                                                },
-                                                child: const Text('삭제')),
+                                            Text('해당 서버를 삭제하시겠습니까?'),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(ctx),
+                                                    child: const Text('취소')),
+                                                TextButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _servers.remove(server);
+                                                      });
+                                                      Navigator.pop(ctx);
+                                                    },
+                                                    child: const Text('삭제')),
+                                              ],
+                                            )
                                           ],
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                )),
-                        contentPadding: const EdgeInsets.all(0),
-                        leading: faviconWidget,
-                        title: nameWidget,
-                        subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: success
-                                ? Text(motd ?? version ?? '.')
-                                : hasError
-                                    ? const Row(
-                                        children: [
-                                          Icon(
-                                            Icons.error,
-                                            color: Colors.redAccent,
-                                            size: 17,
-                                          ),
-                                          Text(
-                                            ' 연결 실패',
-                                            style: TextStyle(
-                                              color: Colors.redAccent,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : null),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            playerCountWidget,
-                            const SizedBox(height: 5),
-                            pingWidget,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                });
-          },
-          itemCount: _servers.length,
-          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
-        ),
+                                        ),
+                                      ),
+                                    )),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(0),
+                                leading: faviconWidget,
+                                title: nameWidget,
+                                subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: success
+                                        ? Text(motd ?? version ?? '.')
+                                        : hasError
+                                            ? const Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.error,
+                                                    color: Colors.redAccent,
+                                                    size: 17,
+                                                  ),
+                                                  Text(
+                                                    ' 연결 실패',
+                                                    style: TextStyle(
+                                                      color: Colors.redAccent,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : null),
+                                trailing: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    playerCountWidget,
+                                    const SizedBox(height: 5),
+                                    pingWidget,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                },
+                itemCount: _servers.length,
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () =>
@@ -357,6 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onChanged: (s) => address = s,
                       validator: (s) {
                         if (s == null) return '주소를 입력해주세요';
+                        if (s.contains(':')) return '포트는 아래 필드에 입력해주세요!';
                         return null;
                       },
                     ),

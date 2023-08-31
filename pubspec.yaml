@@ -36,6 +36,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   dart_minecraft: ^0.5.2
+  shared_preferences: ^2.2.1
 
 dev_dependencies:
   flutter_test:
