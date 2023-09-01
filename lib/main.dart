@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:math' as math;
 
 import 'package:dart_minecraft/dart_minecraft.dart';
 import 'package:dart_minecraft/src/packet/packets/response_packet.dart';
@@ -40,14 +41,14 @@ class Server {
       : port = port ?? 25565,
         timeoutSeconds = timeoutSeconds ?? 10;
 
+  static const _divider = ',';
+  static const _implictly_null = '@_NULL_@';
+
   String uri;
   int port;
   int timeoutSeconds;
 
   String? nick;
-
-  static const _divider = ',';
-  static const _implictly_null = '@_NULL_@';
 
   String serialize() {
     return [uri, port, timeoutSeconds, nick ?? _implictly_null].join(_divider);
@@ -77,38 +78,33 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Server> _servers = [];
   bool _isFetching = true;
 
+  late final SharedPreferences _prefs;
+
   _MyHomePageState() {
-    _fetchServers().then((value) {
+    SharedPreferences.getInstance().then((value) {
+      _prefs = value;
+
+      final fetched = _fetchServers();
+      if (fetched != null) {
+        _servers.addAll(fetched);
+      }
+
       setState(() {
-        if (value != null) {
-          _servers.clear();
-          _servers.addAll(value);
-        }
         _isFetching = false;
       });
     });
   }
 
-  Future<List<Server>?> _fetchServers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final servers = prefs
+  List<Server>? _fetchServers() {
+    final servers = _prefs
         .getStringList(_prefKey)
         ?.map((e) => Server.fromSerialized(e))
         .toList();
     return servers;
   }
 
-  void _loadServers() async {
-    final servers = await _fetchServers();
-    if (servers != null) {
-      _servers.clear();
-      _servers.addAll(servers);
-    }
-  }
-
-  void _saveServers() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setStringList(_prefKey, _servers.map((e) => e.serialize()).toList());
+  void _saveServers() {
+    _prefs.setStringList(_prefKey, _servers.map((e) => e.serialize()).toList());
   }
 
   void _addServer(Server server) {
@@ -119,14 +115,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _refreshServers() {
-    final all = List.of(_servers);
-
     setState(() {
-      _servers.clear();
+      _isFetching = true;
     });
 
+    _saveServers();
+    _servers.clear();
+    final fetched = _fetchServers();
+    if (fetched != null) {
+      _servers.addAll(fetched);
+    }
     setState(() {
-      _servers.addAll(all);
+      _isFetching = false;
     });
   }
 
@@ -157,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       final server = _servers[idx];
                       return FutureBuilder(
                           future: server.fetch(),
+                          initialData: null,
                           builder: (ctx, snapshot) {
                             final hasError = snapshot.hasError;
                             final hasData = snapshot.hasData;
