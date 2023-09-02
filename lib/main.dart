@@ -96,10 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<Server>? _fetchServers() {
-    final servers = _prefs
-        .getStringList(_prefKey)
-        ?.map((e) => Server.fromSerialized(e))
-        .toList();
+    final servers = _prefs.getStringList(_prefKey)?.map((e) => Server.fromSerialized(e)).toList();
     return servers;
   }
 
@@ -165,14 +162,12 @@ class _MyHomePageState extends State<MyHomePage> {
                             final data = snapshot.data;
                             final resp = data?.response;
 
-                            final success =
-                                hasData && data != null && resp != null;
+                            final success = hasData && data != null && resp != null;
                             final ping = data?.ping;
 
                             final version = success ? resp.version.name : null;
                             final faviconBlob = success ? resp.favicon : null;
-                            final motd = success &&
-                                    resp.description.description.isNotEmpty
+                            final motd = success && resp.description.description.isNotEmpty
                                 ? resp.description.description
                                 : null;
 
@@ -198,8 +193,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ? SizedBox(
                                         width: 55,
                                         height: 55,
-                                        child: Image.memory(base64Decode(
-                                            faviconBlob.split(',')[1])),
+                                        child: Image.memory(base64Decode(faviconBlob.split(',')[1])),
                                       )
                                     : null
                                 : null;
@@ -209,8 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               children: [
                                 (!success && !hasError)
                                     ? const Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 0, 7, 0),
+                                        padding: EdgeInsets.fromLTRB(0, 0, 7, 0),
                                         child: SizedBox(
                                           width: 45,
                                           height: 45,
@@ -232,13 +225,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               fontSize: 20,
                                             )),
                                         TextSpan(
-                                          text: server.port == 25565
-                                              ? ' '
-                                              : ' :${server.port}',
+                                          text: server.port == 25565 ? ' ' : ' :${server.port}',
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 20,
-                                              color: Colors.grey),
+                                              fontWeight: FontWeight.bold, fontSize: 20, color: Colors.grey),
                                         ),
                                       ]))
                               ],
@@ -251,14 +240,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             final playerCountWidget = success && players != null
                                 ? Text.rich(TextSpan(
                                     children: [
+                                      TextSpan(text: players.online.toString(), style: const TextStyle(fontSize: 25)),
                                       TextSpan(
-                                          text: players.online.toString(),
-                                          style: const TextStyle(fontSize: 25)),
-                                      TextSpan(
-                                          text:
-                                              ' / ${players.max.toString().padLeft(2, '0')}',
-                                          style: const TextStyle(
-                                              color: Colors.grey))
+                                          text: ' / ${players.max.toString().padLeft(2, '0')}',
+                                          style: const TextStyle(color: Colors.grey))
                                     ],
                                   ))
                                 : const SizedBox();
@@ -269,8 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               shadowColor: pingColor,
                               elevation: 2,
                               child: InkWell(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(3)),
+                                borderRadius: const BorderRadius.all(Radius.circular(3)),
                                 onTap: !success
                                     ? null
                                     : () => showDialog(
@@ -279,17 +263,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                           final items = <Widget>[
                                             Text('버전 : ${version ?? '알 수 없음'}'),
                                             Text('MOTD : ${motd ?? '알 수 없음'}'),
-                                            Text(
-                                                '지연시간 : ${ping == null ? '알 수 없음' : '${ping}ms'}'),
+                                            Text('지연시간 : ${ping == null ? '알 수 없음' : '${ping}ms'}'),
                                           ];
 
                                           if (players != null) {
-                                            items.add(Text(
-                                                '현재 플레이어 : ${players.online}'));
-                                            items.add(Text(
-                                                '최대 플레이어 : ${players.max}'));
-                                            final playerSamples =
-                                                players.sample;
+                                            items.add(Text('현재 플레이어 : ${players.online}'));
+                                            items.add(Text('최대 플레이어 : ${players.max}'));
+                                            final playerSamples = players.sample;
 
                                             if (playerSamples.isNotEmpty) {
                                               items.add(const Text('플레이어 :'));
@@ -304,11 +284,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                             child: Padding(
                                               padding: const EdgeInsets.all(10),
                                               child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
+                                                mainAxisAlignment: MainAxisAlignment.center,
                                                 mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: items,
                                               ),
                                             ),
@@ -318,38 +296,28 @@ class _MyHomePageState extends State<MyHomePage> {
                                     context: ctx,
                                     builder: (ctx) => Dialog(
                                           child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                10, 12, 10, 2),
+                                            padding: const EdgeInsets.fromLTRB(10, 12, 10, 2),
                                             child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              crossAxisAlignment: CrossAxisAlignment.center,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text('해당 서버를 삭제하시겠습니까?'),
                                                 Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisAlignment: MainAxisAlignment.center,
                                                   children: [
                                                     TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(ctx),
-                                                        child:
-                                                            const Text('취소')),
+                                                        onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
                                                     TextButton(
                                                         onPressed: () {
                                                           setState(() {
-                                                            _servers
-                                                                .remove(server);
+                                                            _servers.remove(server);
                                                             _saveServers();
                                                           });
                                                           Navigator.pop(ctx);
                                                         },
-                                                        child:
-                                                            const Text('삭제')),
+                                                        child: const Text('삭제')),
                                                   ],
                                                 )
                                               ],
@@ -357,8 +325,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         )),
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(10, 3, 10, 3),
+                                  padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.all(0),
                                     leading: faviconWidget,
@@ -378,16 +345,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       Text(
                                                         ' 연결 실패',
                                                         style: TextStyle(
-                                                          color:
-                                                              Colors.redAccent,
+                                                          color: Colors.redAccent,
                                                         ),
                                                       ),
                                                     ],
                                                   )
                                                 : null),
                                     trailing: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         playerCountWidget,
@@ -402,13 +367,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           });
                     },
                     itemCount: _servers.length,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+                    padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
                   ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            Navigator.push(context, MaterialPageRoute(builder: (ctx) {
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) {
           final key = GlobalKey<FormState>();
 
           String? address;
@@ -417,8 +380,7 @@ class _MyHomePageState extends State<MyHomePage> {
           String? timeout;
 
           void snackbar(String msg) {
-            ScaffoldMessenger.of(ctx)
-                .showSnackBar(SnackBar(content: Text(msg)));
+            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
           }
 
           return Scaffold(
@@ -456,9 +418,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       onChanged: (s) => port = s,
                       validator: (s) {
-                        if (s != null &&
-                            s.isNotEmpty &&
-                            int.tryParse(s) == null) {
+                        if (s != null && s.isNotEmpty && int.tryParse(s) == null) {
                           return '포트가 유효하지 않습니다.';
                         }
                         return null;
@@ -486,9 +446,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       onChanged: (s) => timeout = s,
                       validator: (s) {
-                        if (s != null &&
-                            s.isNotEmpty &&
-                            int.tryParse(s) == null) {
+                        if (s != null && s.isNotEmpty && int.tryParse(s) == null) {
                           return '시간이 유효하지 않습니다.';
                         }
                         return null;
@@ -506,12 +464,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             return;
                           }
 
-                          final _port = port == null
-                              ? 25565
-                              : int.tryParse(port!) ?? 25565;
+                          final _port = port == null ? 25565 : int.tryParse(port!) ?? 25565;
 
-                          final _timeout =
-                              timeout == null ? null : int.tryParse(timeout!);
+                          final _timeout = timeout == null ? null : int.tryParse(timeout!);
 
                           final server = Server(
                             address!,
@@ -520,9 +475,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             timeoutSeconds: _timeout,
                           );
 
-                          if (_servers.any((element) =>
-                              element.uri == server.uri &&
-                              element.port == server.port)) {
+                          if (_servers.any((element) => element.uri == server.uri && element.port == server.port)) {
                             snackbar('동일한 설정의 서버가 이미 존재합니다.');
                             return;
                           }
