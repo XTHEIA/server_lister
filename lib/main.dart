@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '마인크래프트 서버 테스터',
+      title: 'SLP',
       themeMode: ThemeMode.dark,
       darkTheme: ThemeData.dark().copyWith(
           colorScheme: ColorScheme.fromSwatch(
@@ -134,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('마인크래프트 서버 테스터'),
+            const Text('SLP : 서버 목록'),
             IconButton(
               onPressed: _refreshServers,
               icon: const Icon(Icons.refresh),
