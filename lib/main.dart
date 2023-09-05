@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:math' as math;
 
 import 'package:dart_minecraft/dart_minecraft.dart';
 import 'package:dart_minecraft/src/packet/packets/response_packet.dart';
@@ -129,6 +128,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    void snackbar(String msg) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -158,6 +161,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           builder: (ctx, snapshot) {
                             final hasError = snapshot.hasError;
                             final hasData = snapshot.hasData;
+
+                            if (hasError) {
+                              final error = snapshot.error;
+                              log("오류 발생 : ");
+                              log(error.toString());
+                              snackbar(error.toString());
+                            }
 
                             final data = snapshot.data;
                             final resp = data?.response;
@@ -232,7 +242,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ]))
                               ],
                             );
-
                             final pingWidget = Text(
                               ping == null ? '' : '${ping}ms',
                               style: TextStyle(fontSize: 14, color: pingColor),
